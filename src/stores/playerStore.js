@@ -4,6 +4,9 @@ import { getSongUrl, getLyric } from '../services/api'
 // 全局唯一的 Audio 实例，不参与 React 渲染
 const audio = new Audio()
 
+// 歌曲 URL 缓存，避免重复请求 API
+const urlCache = new Map()
+
 export const PlayMode = { LOOP: 'LOOP', SINGLE: 'SINGLE', SHUFFLE: 'SHUFFLE' }
 
 // 播放历史：从 localStorage 读取
@@ -160,48 +163,49 @@ const usePlayerStore = create((set, get) => ({
     set({ playHistory: newHistory })
     saveHistory(newHistory)
 
-    try {
-      // 使用 999 = 24-bit 无损音质
-      const urlData = await getSongUrl({ source: song.source, id: song.id, br: 999 })
-      if (!urlData.url) throw new Error('no url')
+    const cacheKey = `${song.source}:${song.id}`
 
-      audio.src = urlData.url
-      audio.load()
-      // 不立即 play()，等待 canplay 事件触发播放（避免噪音和延迟）
-    } catch {
-      // 音质降级兜底
-      if (song.source !== 'joox') {
-        try {
-          const fb = await getSongUrl({ source: 'joox', id: song.id, br: 999 })
-          if (fb.url) {
-            audio.src = fb.url
-            audio.load()
-            return
-          }
-        } catch { /* ignore */ }
-
-        // 再次兜底：joox 320kbps
-        try {
-          const fb2 = await getSongUrl({ source: 'joox', id: song.id, br: 320 })
-          if (fb2.url) {
-            audio.src = fb2.url
-            audio.load()
-            return
-          }
-        } catch { /* ignore */ }
-      }
-
-      // 最后兜底：当前源 320kbps
+    // 优先使用缓存
+    let url = urlCache.get(cacheKey)
+    if (!url) {
       try {
-        const fb3 = await getSongUrl({ source: song.source, id: song.id, br: 320 })
-        if (fb3.url) {
-          audio.src = fb3.url
-          audio.load()
-          return
+        const urlData = await getSongUrl({ source: song.source, id: song.id, br: 320 })
+        if (urlData.url) {
+          url = urlData.url
+          urlCache.set(cacheKey, url)
+        }
+      } catch { /* 继续兜底 */ }
+    }
+
+    // 缓存未命中，尝试 joox 源
+    if (!url && song.source !== 'joox') {
+      try {
+        const fb = await getSongUrl({ source: 'joox', id: song.id, br: 320 })
+        if (fb.url) {
+          url = fb.url
+          urlCache.set(cacheKey, fb.url)
         }
       } catch { /* ignore */ }
+    }
 
+    if (!url) {
       set({ error: '获取播放链接失败', loading: false, _pendingPlay: false })
+      return
+    }
+
+    audio.src = url
+    audio.load()
+
+    // 预加载下一首歌曲 URL（后台静默获取）
+    const nextIndex = index + 1 < playlist.length ? index + 1 : 0
+    const nextSong = playlist[nextIndex]
+    if (nextSong && nextSong !== song) {
+      const nextKey = `${nextSong.source}:${nextSong.id}`
+      if (!urlCache.has(nextKey)) {
+        getSongUrl({ source: nextSong.source, id: nextSong.id, br: 320 })
+          .then((d) => { if (d.url) urlCache.set(nextKey, d.url) })
+          .catch(() => {})
+      }
     }
 
     // 异步获取歌词
