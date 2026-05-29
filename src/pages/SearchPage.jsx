@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { search as searchApi } from '../services/api'
 import SongItem from '../components/SongItem'
-import usePlayerStore from '../stores/playerStore'
+import usePlayerStore, { prefetchUrls } from '../stores/playerStore'
 
 const sources = [
   { value: 'joox', label: 'Joox' },
@@ -40,7 +40,9 @@ export default function SearchPage() {
 
     try {
       const data = await searchApi({ source, name: kw, count: 30 })
-      setResults(Array.isArray(data) ? data : [])
+      const list = Array.isArray(data) ? data : []
+      setResults(list)
+      if (list.length > 0) prefetchUrls(list, 5)
     } catch {
       setResults([])
     } finally {

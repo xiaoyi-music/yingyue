@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { search } from '../services/api'
 import SongItem from '../components/SongItem'
-import usePlayerStore from '../stores/playerStore'
+import usePlayerStore, { prefetchUrls } from '../stores/playerStore'
 
 // 多样化的热门搜索词，覆盖华语/欧美/日韩流行
 const hotQueries = [
@@ -40,6 +40,7 @@ export default function HomePage() {
       if (newSongs.length > 0) {
         setFeatured((prev) => [...prev, ...newSongs].slice(0, 50))
         setLoading(false)
+        prefetchUrls(newSongs, 5)
       }
     }
 
