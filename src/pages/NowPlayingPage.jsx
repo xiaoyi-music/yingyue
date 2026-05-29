@@ -1,10 +1,9 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import usePlayerStore, { PlayMode } from '../stores/playerStore'
 import useAlbumArt from '../hooks/useAlbumArt'
 import { simplify } from '../utils/simplify'
 import { parseLyrics, fillWordTiming } from '../utils/lyricsParser'
 import LyricRenderer from '../components/LyricRenderer'
-import ImmersiveLyrics from '../components/ImmersiveLyrics'
 import Particles from '../components/Particles'
 
 function formatTime(s) {
@@ -37,54 +36,72 @@ export default function NowPlayingPage() {
 
   const song = playlist[currentIndex] ?? null
   const coverUrl = useAlbumArt(song?.source, song?.pic_id, 500)
-  const [immersive, setImmersive] = useState(false)
-  const [favorited, setFavorited] = useState(false)
 
-  // 解析歌词 + 填充逐字时间
+  // 歌词弹窗状态
+  const [showLyrics, setShowLyrics] = useState(false)
+  const lyricRef = useRef(null)
+
   const timedLyrics = useMemo(() => fillWordTiming(parseLyrics(lyric)), [lyric])
   const parsedTLyric = useMemo(() => parseLyrics(tlyric), [tlyric])
 
-  // 进度色相
   const progress = duration > 0 ? currentTime / duration : 0
   const hue = (250 + progress * 220) % 360
 
-  // 上滑手势 → 沉浸模式
-  const touchStartY = useRef(0)
-  const handleTouchStart = useCallback((e) => { touchStartY.current = e.touches[0].clientY }, [])
-  const handleTouchEnd = useCallback((e) => {
-    if (touchStartY.current - e.changedTouches[0].clientY > 50) setImmersive(true)
-  }, [])
-
   return (
-    <div
-      className="relative flex h-full flex-col bg-gray-900"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* 沉浸式全屏歌词 */}
-      {immersive && (
-        <ImmersiveLyrics
-          timedLyrics={timedLyrics}
-          parsedTLyric={parsedTLyric}
-          currentTime={currentTime}
-          duration={duration}
-          hue={hue}
-          coverUrl={coverUrl}
-          isPlaying={isPlaying}
-          onClose={() => setImmersive(false)}
-          onSeek={seek}
-        />
+    <div className="relative flex h-full flex-col bg-gray-900 overflow-hidden">
+      {/* ===== 歌词弹窗 ===== */}
+      {showLyrics && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-gray-950/95">
+          {/* 模糊背景 */}
+          {coverUrl && (
+            <div className="absolute inset-0">
+              <img src={coverUrl} alt="" className="h-full w-full scale-110 object-cover"
+                style={{ filter: 'blur(40px) brightness(0.25)' }} />
+            </div>
+          )}
+
+          <Particles hue={hue} isPlaying={isPlaying} />
+
+          {/* 顶部 */}
+          <div className="relative z-10 flex items-center justify-between px-4 py-3">
+            <span className="text-xs tabular-nums text-gray-500">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+            <span className="text-xs text-gray-500">{song ? simplify(song.name) : ''}</span>
+            <button
+              onClick={() => setShowLyrics(false)}
+              className="rounded-full bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20 transition"
+            >
+              关闭
+            </button>
+          </div>
+
+          {/* 歌词 */}
+          <div className="relative z-10 flex-1 min-h-0">
+            <LyricRenderer
+              ref={lyricRef}
+              lyrics={timedLyrics}
+              tLyrics={parsedTLyric}
+              currentTime={currentTime}
+              duration={duration}
+              hue={hue}
+              isPlaying={isPlaying}
+              onSeek={seek}
+              className="h-full"
+            />
+          </div>
+        </div>
       )}
 
-      {/* ===== 上：封面 + 歌曲信息 ===== */}
-      <div className="relative flex flex-shrink-0 flex-col items-center justify-center px-6 pt-6 pb-2">
+      {/* ===== 封面 + 歌曲信息 ===== */}
+      <div className="relative flex flex-shrink-0 flex-col items-center justify-center px-6 pt-10 pb-4">
         <div
           className="absolute inset-0 transition-colors duration-1000"
           style={{ background: `linear-gradient(180deg, hsla(${hue},50%,30%,0.35) 0%, transparent 100%)` }}
         />
         <Particles hue={hue} isPlaying={isPlaying} />
 
-        <div className="relative z-10 mb-4 w-48 overflow-hidden rounded-2xl shadow-2xl">
+        <div className="relative z-10 mb-6 w-56 overflow-hidden rounded-2xl shadow-2xl sm:w-64">
           {coverUrl ? (
             <img
               src={coverUrl} alt=""
@@ -92,7 +109,7 @@ export default function NowPlayingPage() {
             />
           ) : (
             <div className="flex aspect-square w-full items-center justify-center bg-gray-800">
-              <svg className="h-12 w-12 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="h-16 w-16 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 3v9.28a4.39 4.39 0 0 0-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z" />
               </svg>
             </div>
@@ -108,19 +125,17 @@ export default function NowPlayingPage() {
         </div>
       </div>
 
-      {/* ===== 下：RAF 歌词渲染器 ===== */}
-      <div className="relative flex-1 min-h-0">
-        <LyricRenderer
-          lyrics={timedLyrics}
-          tLyrics={parsedTLyric}
-          currentTime={currentTime}
-          duration={duration}
-          hue={hue}
-          isPlaying={isPlaying}
-          onSeek={seek}
-          compact
-          className="h-full"
-        />
+      {/* ===== 歌词按钮 + 空间 ===== */}
+      <div className="flex flex-1 items-start justify-center">
+        <button
+          onClick={() => setShowLyrics(true)}
+          disabled={!song || timedLyrics.length === 0}
+          className="rounded-full border border-purple-500/50 px-5 py-1.5 text-sm text-purple-400
+            hover:bg-purple-500/20 hover:border-purple-400 hover:text-purple-300
+            active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          词
+        </button>
       </div>
 
       {/* ===== 底部控件 ===== */}
@@ -200,10 +215,13 @@ export default function NowPlayingPage() {
           </div>
 
           <button
-            onClick={() => setFavorited(!favorited)}
-            className={`w-10 text-center text-lg ${favorited ? 'text-red-400' : 'text-gray-400'}`}
+            onClick={() => setShowLyrics(true)}
+            disabled={!song || timedLyrics.length === 0}
+            className="w-10 text-center text-sm text-purple-400 hover:text-purple-300
+              disabled:opacity-30 disabled:cursor-not-allowed transition"
+            title="查看歌词"
           >
-            {favorited ? '❤️' : '🤍'}
+            词
           </button>
         </div>
 
@@ -219,7 +237,9 @@ export default function NowPlayingPage() {
           />
         </div>
 
-        <p className="mt-1.5 text-center text-xs text-gray-600">上滑沉浸歌词 · 点击歌词跳转</p>
+        <p className="mt-1.5 text-center text-xs text-gray-600">
+          {timedLyrics.length > 0 ? '点击「词」查看歌词' : '暂无歌词'}
+        </p>
       </div>
     </div>
   )
