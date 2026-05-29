@@ -72,9 +72,9 @@ export default function PlayerBar() {
         />
       </div>
 
-      <div className="flex items-center gap-4 px-4 py-2">
-        {/* 封面 + 歌曲信息（点击封面展开歌词） */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex items-center gap-2 px-3 py-2 sm:gap-4 sm:px-4">
+        {/* 封面 + 歌曲信息 */}
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
             onClick={() => navigate('/now-playing')}
             className="flex-shrink-0 overflow-hidden rounded-lg transition hover:opacity-80"
@@ -84,12 +84,12 @@ export default function PlayerBar() {
               <img
                 src={coverUrl}
                 alt=""
-                className={`h-12 w-12 rounded-lg object-cover ${isPlaying ? 'animate-spin-slow' : ''}`}
+                className={`h-10 w-10 rounded-lg object-cover sm:h-12 sm:w-12 ${isPlaying ? 'animate-spin-slow' : ''}`}
                 style={{ animationDuration: '8s' }}
               />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-700">
-                <svg className="h-6 w-6 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-700 sm:h-12 sm:w-12">
+                <svg className="h-5 w-5 text-gray-500 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 3v9.28a4.39 4.39 0 0 0-1.5-.28C8.01 12 6 14.01 6 16.5S8.01 21 10.5 21c2.31 0 4.2-1.75 4.45-4H15V6h4V3h-7z" />
                 </svg>
               </div>
@@ -106,19 +106,19 @@ export default function PlayerBar() {
             </p>
           </div>
           {error && (
-            <span className="flex-shrink-0 text-xs text-red-400">{error}</span>
+            <span className="hidden flex-shrink-0 text-xs text-red-400 sm:inline">{error}</span>
           )}
         </div>
 
         {/* 播放控制 */}
-        <div className="flex items-center gap-3">
-          <span className="min-w-[36px] text-right text-xs tabular-nums text-gray-400">
+        <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-3">
+          <span className="w-8 text-right text-[10px] tabular-nums text-gray-400 sm:w-9 sm:text-xs">
             {formatTime(currentTime)}
           </span>
 
           <button
             onClick={handleModeToggle}
-            className="text-sm text-gray-400 transition hover:text-white"
+            className="text-xs text-gray-400 transition hover:text-white sm:text-sm"
             title={modeLabels[playMode]}
           >
             {modeLabels[playMode]}
@@ -128,7 +128,7 @@ export default function PlayerBar() {
             onClick={prev}
             className="text-gray-300 transition hover:text-white active:scale-90"
           >
-            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
             </svg>
           </button>
@@ -136,16 +136,16 @@ export default function PlayerBar() {
           <button
             onClick={togglePlay}
             disabled={!song}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 text-white transition hover:bg-purple-400 active:scale-90 disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 text-white transition hover:bg-purple-400 active:scale-90 disabled:opacity-40 sm:h-10 sm:w-10"
           >
             {loading ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent sm:h-4 sm:w-4" />
             ) : isPlaying ? (
-              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
               </svg>
             ) : (
-              <svg className="ml-0.5 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="ml-0.5 h-4 w-4 sm:h-5 sm:w-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -155,18 +155,18 @@ export default function PlayerBar() {
             onClick={next}
             className="text-gray-300 transition hover:text-white active:scale-90"
           >
-            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24">
               <path d="m6 18 8.5-6L6 6v12zm10-12v12h2V6h-2z" />
             </svg>
           </button>
 
-          <span className="min-w-[36px] text-xs tabular-nums text-gray-400">
+          <span className="w-8 text-[10px] tabular-nums text-gray-400 sm:w-9 sm:text-xs">
             {formatTime(duration)}
           </span>
         </div>
 
-        {/* 音量 */}
-        <div className="flex items-center gap-2">
+        {/* 音量（小屏隐藏） */}
+        <div className="hidden items-center gap-2 md:flex">
           <svg className="h-4 w-4 flex-shrink-0 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
             <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
           </svg>
